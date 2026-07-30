@@ -1,0 +1,1641 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Happy Level Up!</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!--
+  Drop your MP3 in the same folder and name it: birthday.mp3
+-->
+    <audio id="bday-audio" src="birthday.mp3" preload="auto"></audio>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&family=Inter:wght@300;400;500&family=Vazirmatn:wght@400;500;600&display=swap");
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+      html {
+        scroll-behavior: smooth;
+        height: 100%;
+        background: #0d001a;
+      }
+      body {
+        margin: 0;
+        padding: 0;
+        min-height: 100vh;
+        font-family: "Inter", sans-serif;
+        background: linear-gradient(
+          160deg,
+          #0d001a 0%,
+          #1a0030 40%,
+          #2a0010 100%
+        );
+        overflow-x: hidden;
+        overflow-y: hidden;
+      }
+      body::before {
+        content: "";
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image:
+          radial-gradient(
+            1px 1px at 12% 18%,
+            rgba(255, 255, 255, 0.7) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 35% 7%,
+            rgba(255, 255, 255, 0.5) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1.5px 1.5px at 58% 33%,
+            rgba(255, 255, 255, 0.6) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 78% 14%,
+            rgba(255, 255, 255, 0.4) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 91% 48%,
+            rgba(255, 255, 255, 0.5) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 4% 68%,
+            rgba(255, 255, 255, 0.4) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1.5px 1.5px at 22% 83%,
+            rgba(255, 255, 255, 0.6) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 68% 73%,
+            rgba(255, 255, 255, 0.3) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 48% 53%,
+            rgba(255, 255, 255, 0.5) 0%,
+            transparent 100%
+          ),
+          radial-gradient(
+            1px 1px at 86% 86%,
+            rgba(255, 255, 255, 0.4) 0%,
+            transparent 100%
+          );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      /* cake stays fixed, centred, ABOVE everything (z:20) */
+      #cake-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100vh;
+        z-index: 20;
+        pointer-events: auto;
+        transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      #cake-canvas.shifted {
+        transform: translateX(22%);
+      }
+
+      /* blow ui */
+      #blow-ui {
+        position: fixed;
+        bottom: 9%;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 12px;
+        z-index: 100;
+      }
+      #instructions {
+        font-family: "Playfair Display", serif;
+        font-style: italic;
+        font-size: 19px;
+        color: #fff;
+        text-shadow: 0 0 20px rgba(255, 160, 80, 0.6);
+        background: rgba(0, 0, 0, 0.4);
+        backdrop-filter: blur(8px);
+        padding: 11px 26px;
+        border-radius: 40px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+        animation: softpulse 2.4s ease-in-out infinite;
+        text-align: center;
+        white-space: nowrap;
+      }
+      #start-mic-btn {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1.5px solid rgba(255, 200, 100, 0.5);
+        color: rgba(255, 230, 180, 0.95);
+        font-family: "Inter", sans-serif;
+        font-size: 14px;
+        padding: 10px 26px;
+        border-radius: 30px;
+        cursor: pointer;
+        transition:
+          background 0.2s,
+          transform 0.15s;
+      }
+      #start-mic-btn:hover {
+        background: rgba(255, 200, 100, 0.18);
+        transform: translateY(-1px);
+      }
+      #start-mic-btn.hidden {
+        display: none;
+      }
+      #blow-meter-wrap {
+        width: 200px;
+        height: 8px;
+        background: rgba(255, 255, 255, 0.12);
+        border-radius: 6px;
+        overflow: hidden;
+        display: none;
+      }
+      #blow-meter-wrap.visible {
+        display: block;
+      }
+      #blow-meter-bar {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, #ffb347, #ff5e62);
+        border-radius: 6px;
+        transition: width 0.07s ease;
+      }
+
+      /* candle counter badge */
+      #candle-count {
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+        color: rgba(255, 220, 140, 0.9);
+        background: rgba(0, 0, 0, 0.35);
+        backdrop-filter: blur(6px);
+        padding: 5px 16px;
+        border-radius: 20px;
+        border: 1px solid rgba(255, 200, 80, 0.25);
+        display: none;
+      }
+      #candle-count.visible {
+        display: block;
+      }
+
+      @keyframes softpulse {
+        0%,
+        100% {
+          opacity: 0.9;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 1;
+          transform: scale(1.03);
+        }
+      }
+
+      /* confetti */
+      #confetti-canvas {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 30;
+        pointer-events: none;
+        display: none;
+      }
+
+      /* balloons — float gently in the background around the character */
+      #balloons {
+        position: fixed;
+        inset: 0;
+        z-index: 25;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 1.2s ease;
+      }
+      #balloons.visible {
+        opacity: 1;
+      }
+      .balloon {
+        position: absolute;
+        display: block;
+        animation: balloon-float 5s ease-in-out infinite;
+      }
+      .balloon--1 {
+        width: 78px;
+        top: 8%;
+        left: 8%;
+        animation-duration: 5.4s;
+        animation-delay: 0s;
+      }
+      .balloon--2 {
+        width: 62px;
+        top: 14%;
+        right: 10%;
+        animation-duration: 4.6s;
+        animation-delay: 0.6s;
+      }
+      .balloon--3 {
+        width: 56px;
+        top: 46%;
+        left: 4%;
+        animation-duration: 5.8s;
+        animation-delay: 1.1s;
+      }
+      .balloon--4 {
+        width: 70px;
+        top: 40%;
+        right: 5%;
+        animation-duration: 5s;
+        animation-delay: 0.3s;
+      }
+      .balloon--5 {
+        width: 50px;
+        top: 74%;
+        left: 12%;
+        animation-duration: 4.8s;
+        animation-delay: 1.6s;
+      }
+      .balloon--6 {
+        width: 64px;
+        top: 70%;
+        right: 14%;
+        animation-duration: 5.2s;
+        animation-delay: 0.9s;
+      }
+      .balloon--7 {
+        width: 46px;
+        top: 26%;
+        left: 22%;
+        animation-duration: 4.4s;
+        animation-delay: 2s;
+      }
+      @keyframes balloon-float {
+        0%,
+        100% {
+          transform: translateY(0) rotate(-3deg);
+        }
+        50% {
+          transform: translateY(-24px) rotate(3deg);
+        }
+      }
+
+      /* character wrap — fades in centred, z:40 so it's above everything */
+      #char-wrap {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0px;
+        z-index: 40;
+        pointer-events: none;
+        opacity: 0;
+        transform: scale(0.82);
+        transition:
+          opacity 0.9s cubic-bezier(0.22, 1, 0.36, 1),
+          transform 0.9s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      #char-wrap.visible {
+        opacity: 1;
+        transform: scale(1);
+        pointer-events: auto;
+      }
+      /* char-label — a little cloud floating above the guy's head */
+      #char-label {
+        position: relative;
+        font-family: "Vazirmatn", "Playfair Display", serif;
+        font-style: normal;
+        font-weight: 500;
+        font-size: 20px;
+        color: #3a2f22;
+        background: #fdfbf5;
+        padding: 16px 34px;
+        border-radius: 999px;
+        box-shadow: 0 14px 30px rgba(0, 0, 0, 0.35);
+        margin-bottom: 46px;
+        white-space: normal;
+        text-align: center;
+        max-width: 100%;
+        opacity: 0;
+        transition: opacity 0.7s ease 0.5s;
+      }
+      /* puffy bumps along the top of the cloud */
+      #char-label::before {
+        content: "";
+        position: absolute;
+        top: -16px;
+        left: 24px;
+        width: 34px;
+        height: 34px;
+        background: #fdfbf5;
+        border-radius: 50%;
+        box-shadow:
+          28px -8px 0 -3px #fdfbf5,
+          56px 3px 0 -8px #fdfbf5;
+      }
+      /* small trailing bubbles, like a thought-bubble tail down toward his head */
+      #char-label::after {
+        content: "";
+        position: absolute;
+        bottom: -20px;
+        left: 44%;
+        width: 15px;
+        height: 15px;
+        background: #fdfbf5;
+        border-radius: 50%;
+        box-shadow: -16px 15px 0 -4px #fdfbf5;
+      }
+      #char-wrap.visible #char-label {
+        opacity: 1;
+      }
+
+      /* =================== SVG GUY =================== */
+      #svg-guy-wrap {
+        width: 380px;
+        height: 380px;
+        position: relative;
+        flex-shrink: 0;
+        overflow: hidden;
+        border-radius: 24px;
+        box-shadow:
+          0 0 0 2px rgba(255, 200, 100, 0.2),
+          0 20px 60px rgba(0, 0, 0, 0.5);
+      }
+      #svg-guy-wrap svg {
+        width: 100%;
+        height: 100%;
+      }
+
+      /* The hover-state layers are always visible since we want the full look */
+      #svg-guy-wrap .guy__hover {
+        display: block !important;
+      }
+      #svg-guy-wrap .guy__hover--reverse {
+        display: none !important;
+      }
+
+      /* ---- DANCING ---- */
+      /* animate only the character inside the frame — the card itself
+         (border, shadow, rounded corners) stays perfectly still */
+      #svg-guy-wrap.dancing .guy-figure {
+        animation: svg-body-bounce 0.52s ease-in-out infinite alternate;
+        transform-origin: center bottom;
+      }
+      @keyframes svg-body-bounce {
+        0% {
+          transform: translateY(0px) rotate(-3deg) scaleY(1) scaleX(1);
+        }
+        45% {
+          transform: translateY(-16px) rotate(2.5deg) scaleY(1.05) scaleX(0.96);
+        }
+        100% {
+          transform: translateY(-8px) rotate(-1.5deg) scaleY(0.97) scaleX(1.02);
+        }
+      }
+
+      /* wave the hand continuously */
+      #svg-guy-wrap.dancing .hand {
+        animation: svg-wave 1.1s ease-in-out infinite;
+        transform-origin: 139px 413px;
+      }
+      @keyframes svg-wave {
+        0% {
+          transform: rotate(0deg);
+        }
+        25% {
+          transform: rotate(-20deg);
+        }
+        55% {
+          transform: rotate(8deg);
+        }
+        80% {
+          transform: rotate(-12deg);
+        }
+        100% {
+          transform: rotate(0deg);
+        }
+      }
+
+      /* mustache left side swings */
+      #svg-guy-wrap.dancing .mustache-left {
+        animation: svg-stache-left 1.4s cubic-bezier(0.64, -0.5, 0.28, 1.36)
+          infinite;
+        transform-origin: 240px 270px;
+      }
+      #svg-guy-wrap.dancing .mustache-right {
+        animation: svg-stache-right 1.4s cubic-bezier(0.64, -0.5, 0.28, 1.36)
+          infinite;
+        transform-origin: 262px 270px;
+      }
+      @keyframes svg-stache-left {
+        0%,
+        100% {
+          transform: rotate(0deg);
+        }
+        20% {
+          transform: rotate(-14deg);
+        }
+        50% {
+          transform: rotate(0deg);
+        }
+        70% {
+          transform: rotate(-8deg);
+        }
+      }
+      @keyframes svg-stache-right {
+        0%,
+        100% {
+          transform: rotate(0deg);
+        }
+        20% {
+          transform: rotate(14deg);
+        }
+        50% {
+          transform: rotate(0deg);
+        }
+        70% {
+          transform: rotate(8deg);
+        }
+      }
+
+      /* sunglasses bounce */
+      #svg-guy-wrap.dancing .sunglasses {
+        animation: svg-glasses 0.52s ease-in-out infinite alternate;
+        transform-origin: 250px 215px;
+      }
+      @keyframes svg-glasses {
+        0% {
+          transform: translateY(0px) rotate(-1deg);
+        }
+        100% {
+          transform: translateY(-4px) rotate(1deg);
+        }
+      }
+
+      /* background shapes stay static — only the character moves */
+
+      /* eyes blink */
+      #svg-guy-wrap.dancing .eye {
+        animation: svg-blink 2.8s ease-in-out infinite;
+        transform-origin: 250px 208px;
+      }
+      @keyframes svg-blink {
+        0%,
+        90%,
+        100% {
+          transform: scaleY(1);
+        }
+        94% {
+          transform: scaleY(0.08);
+        }
+      }
+
+      /* music chip */
+      #music-chip {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 200, 100, 0.3);
+        border-radius: 40px;
+        padding: 10px 18px 10px 12px;
+        display: none;
+        align-items: center;
+        gap: 10px;
+        z-index: 200;
+        font-family: "Inter", sans-serif;
+        font-size: 13px;
+      }
+      #music-chip.show {
+        display: flex;
+      }
+      #music-disc {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: conic-gradient(#ff9a3c, #ff4f7b, #a855f7, #3b82f6, #ff9a3c);
+        animation: spin 2.5s linear infinite;
+        flex-shrink: 0;
+        position: relative;
+      }
+      #music-disc::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #111;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      #music-label {
+        color: rgba(255, 230, 180, 0.9);
+      }
+
+      @media (max-width: 768px) {
+        .cartoon {
+          width: 150px;
+          height: 150px;
+        }
+        #svg-guy-wrap {
+          width: 200px;
+          height: 200px;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .cartoon.dancing,
+        .cartoon.dancing::before,
+        .cartoon.dancing::after {
+          animation: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="cake-canvas"></div>
+
+    <div id="blow-ui">
+      <div id="blow-meter-wrap"><div id="blow-meter-bar"></div></div>
+      <div id="candle-count"></div>
+      <div id="instructions">🎂 Blow out the candles — make a wish! 🎂</div>
+      <button id="start-mic-btn">🎤 Allow Microphone</button>
+    </div>
+
+    <canvas id="confetti-canvas"></canvas>
+
+    <div id="balloons">
+      <svg class="balloon balloon--1" viewBox="0 0 60 110">
+        <path
+          d="M30,96 C 20,102 38,104 28,110"
+          fill="none"
+          stroke="#caa96a"
+          stroke-width="1.4"
+        />
+        <polygon points="26,84 34,84 30,96" fill="#2D9CDB" />
+        <ellipse cx="30" cy="42" rx="28" ry="34" fill="#4FC3F7" />
+        <ellipse cx="20" cy="26" rx="8" ry="12" fill="#fff" opacity="0.35" />
+      </svg>
+      <svg class="balloon balloon--2" viewBox="0 0 60 110">
+        <path
+          d="M30,96 C 40,102 22,104 32,110"
+          fill="none"
+          stroke="#caa96a"
+          stroke-width="1.4"
+        />
+        <polygon points="26,84 34,84 30,96" fill="#F4C430" />
+        <ellipse cx="30" cy="42" rx="28" ry="34" fill="#FFE066" />
+        <ellipse cx="20" cy="26" rx="8" ry="12" fill="#fff" opacity="0.4" />
+      </svg>
+      <svg class="balloon balloon--3" viewBox="0 0 60 110">
+        <path
+          d="M30,96 C 20,102 38,104 28,110"
+          fill="none"
+          stroke="#caa96a"
+          stroke-width="1.4"
+        />
+        <polygon points="26,84 34,84 30,96" fill="#2D9CDB" />
+        <ellipse cx="30" cy="42" rx="28" ry="34" fill="#4FC3F7" />
+        <ellipse cx="20" cy="26" rx="8" ry="12" fill="#fff" opacity="0.35" />
+      </svg>
+      <svg class="balloon balloon--4" viewBox="0 0 60 110">
+        <path
+          d="M30,96 C 40,102 22,104 32,110"
+          fill="none"
+          stroke="#caa96a"
+          stroke-width="1.4"
+        />
+        <polygon points="26,84 34,84 30,96" fill="#F4C430" />
+        <ellipse cx="30" cy="42" rx="28" ry="34" fill="#FFE066" />
+        <ellipse cx="20" cy="26" rx="8" ry="12" fill="#fff" opacity="0.4" />
+      </svg>
+      <svg class="balloon balloon--5" viewBox="0 0 60 110">
+        <path
+          d="M30,96 C 20,102 38,104 28,110"
+          fill="none"
+          stroke="#caa96a"
+          stroke-width="1.4"
+        />
+        <polygon points="26,84 34,84 30,96" fill="#2D9CDB" />
+        <ellipse cx="30" cy="42" rx="28" ry="34" fill="#4FC3F7" />
+        <ellipse cx="20" cy="26" rx="8" ry="12" fill="#fff" opacity="0.35" />
+      </svg>
+      <svg class="balloon balloon--6" viewBox="0 0 60 110">
+        <path
+          d="M30,96 C 40,102 22,104 32,110"
+          fill="none"
+          stroke="#caa96a"
+          stroke-width="1.4"
+        />
+        <polygon points="26,84 34,84 30,96" fill="#F4C430" />
+        <ellipse cx="30" cy="42" rx="28" ry="34" fill="#FFE066" />
+        <ellipse cx="20" cy="26" rx="8" ry="12" fill="#fff" opacity="0.4" />
+      </svg>
+      <svg class="balloon balloon--7" viewBox="0 0 60 110">
+        <path
+          d="M30,96 C 20,102 38,104 28,110"
+          fill="none"
+          stroke="#caa96a"
+          stroke-width="1.4"
+        />
+        <polygon points="26,84 34,84 30,96" fill="#2D9CDB" />
+        <ellipse cx="30" cy="42" rx="28" ry="34" fill="#4FC3F7" />
+        <ellipse cx="20" cy="26" rx="8" ry="12" fill="#fff" opacity="0.35" />
+      </svg>
+    </div>
+
+    <div id="music-chip">
+      <div id="music-disc"></div>
+      <span id="music-label">Happy Birthday playing…</span>
+    </div>
+
+    <div id="char-wrap">
+      <div id="char-label">ناز سبیل و مرام و معرفتت مسیحا</div>
+      <div
+        id="svg-guy-wrap"
+        role="img"
+        aria-label="Cool guy with sunglasses and mustache dancing"
+      >
+        <svg viewBox="0 0 500 500" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient
+              id="g2_green"
+              x1="250"
+              x2="250"
+              y2="500"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0" stop-color="#85DE76" />
+              <stop offset="1" stop-color="#5AAB5C" />
+            </linearGradient>
+            <linearGradient
+              id="g2_grad"
+              x1="207.17"
+              y1="245.77"
+              x2="207.17"
+              y2="188.11"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0" stop-color="#F9EA35" stop-opacity="0.9" />
+              <stop offset="1" stop-color="#F9EA35" stop-opacity="0.5" />
+            </linearGradient>
+            <linearGradient
+              id="g2_grad2"
+              x1="292.83"
+              y1="245.77"
+              x2="292.83"
+              y2="188.11"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0" stop-color="#F9EA35" stop-opacity="0.9" />
+              <stop offset="1" stop-color="#F9EA35" stop-opacity="0.5" />
+            </linearGradient>
+          </defs>
+
+          <!-- base green background -->
+          <rect width="500" height="500" fill="url(#g2_green)" />
+
+          <!-- hover background: bright green with geometric shapes (always shown) -->
+          <g class="guy__hover">
+            <rect width="500" height="500" fill="#85DE76" />
+            <polygon
+              class="bg-flip bg-flip--1"
+              points="121.25 135.47 22.32 236.17 159 271.5 121.25 135.47"
+              fill="none"
+              stroke="#fff"
+              stroke-miterlimit="10"
+              stroke-width="4.89"
+              opacity="0.7"
+            />
+            <polygon
+              class="bg-flip bg-flip--2"
+              points="408.6 243.76 469.02 296.11 393.47 322.26 408.6 243.76"
+              fill="none"
+              stroke="#fff"
+              stroke-miterlimit="10"
+              stroke-width="6"
+              opacity="0.7"
+            />
+            <polygon
+              class="bg-flip bg-flip--3"
+              points="473.69 442.93 453.15 412.7 418.47 436.26 395.17 401.97 361.25 425.01 335.83 387.59 342.44 383.1 363.37 413.9 397.29 390.85 420.59 425.15 455.27 401.59 480.3 438.44 473.69 442.93"
+              fill="#fff"
+            />
+            <polygon
+              class="bg-flip bg-flip--4"
+              points="53.27 93.22 46.03 89.8 65.09 49.54 102.99 67.47 120.73 29.99 157.79 47.53 173.72 13.88 180.95 17.3 161.6 58.19 124.53 40.65 106.8 78.13 68.9 60.19 53.27 93.22"
+              fill="#fff"
+            />
+            <rect
+              class="bg-flip bg-flip--5"
+              x="48.53"
+              y="337.35"
+              width="67.73"
+              height="12"
+              transform="translate(-218.64 158.81) rotate(-45)"
+              fill="#65BA52"
+            />
+            <rect
+              class="bg-flip bg-flip--6"
+              x="439.33"
+              y="128.38"
+              width="12"
+              height="67.73"
+              transform="translate(100.32 487.21) rotate(-63.3)"
+              fill="#65BA52"
+            />
+            <polygon
+              points="395.2 34.96 396.73 70.34 365.32 53.97 395.2 34.96"
+              fill="#fff"
+            />
+            <polygon
+              points="34.01 446.19 69.34 443.81 53.74 475.61 34.01 446.19"
+              fill="#fff"
+            />
+          </g>
+
+          <!-- everything below is the character himself — this is the ONLY
+               part that moves when dancing; the background stays put -->
+          <g class="guy-figure">
+            <!-- hair top -->
+            <path
+              d="M280.21,129.1H219c-41.1,0-51-46.1-26-62.1v1c-3,36,37,7,85.21,7,14.79,0,29.05,12.11,29.05,27.05h0A27,27,0,0,1,280.21,129.1Z"
+              fill="#101820"
+            />
+
+            <!-- hair sides -->
+            <path
+              d="M202.11,125.55a106.34,106.34,0,0,0-3.44-26.87,95.53,95.53,0,0,0-49.75,83.62v35.29A106.15,106.15,0,0,0,202.11,125.55Z"
+              fill="#101820"
+            />
+            <path
+              d="M297.82,125.55a106.33,106.33,0,0,1,3.43-26.87A95.53,95.53,0,0,1,351,182.3v35.29A106.14,106.14,0,0,1,297.82,125.55Z"
+              fill="#101820"
+            />
+
+            <!-- ears -->
+            <path
+              d="M337.5,254.5h0a12,12,0,0,1-12-12v-26a12,12,0,0,1,12-12h7a19.08,19.08,0,0,1,19,19v5A26.08,26.08,0,0,1,337.5,254.5Z"
+              fill="#fff0e0"
+            />
+            <path
+              d="M162.5,254.5h0a12,12,0,0,0,12-12v-26a12,12,0,0,0-12-12h-7a19.08,19.08,0,0,0-19,19v5A26.08,26.08,0,0,0,162.5,254.5Z"
+              fill="#fff0e0"
+            />
+            <path
+              d="M162.5,204.5h-7l-.37,0a79.27,79.27,0,0,1-5.44,46.59,25.78,25.78,0,0,0,12.78,3.39h0a12,12,0,0,0,12-12v-26A12,12,0,0,0,162.5,204.5Z"
+              fill="#ffd9b0"
+            />
+            <path
+              d="M337.5,204.5h7l.37,0a79.27,79.27,0,0,0,5.44,46.59,25.78,25.78,0,0,1-12.78,3.39h0a12,12,0,0,1-12-12v-26A12,12,0,0,1,337.5,204.5Z"
+              fill="#ffd9b0"
+            />
+
+            <!-- side hair shadows -->
+            <circle cx="334.25" cy="266.5" r="23" fill="#101820" />
+            <circle cx="320.75" cy="297" r="21.5" fill="#101820" />
+            <circle cx="165.75" cy="266.5" r="23" fill="#101820" />
+            <circle cx="179.25" cy="297" r="21.5" fill="#101820" />
+
+            <!-- neck -->
+            <rect
+              x="234"
+              y="319"
+              width="32"
+              height="63"
+              rx="12"
+              fill="#fff0e0"
+            />
+            <path
+              d="M250,345a65.42,65.42,0,0,1,16,2V333a12,12,0,0,0-12-12h-8a12,12,0,0,0-12,12v14A65.42,65.42,0,0,1,250,345Z"
+              fill="#ffd9b0"
+            />
+
+            <!-- face -->
+            <rect
+              x="158.5"
+              y="95.5"
+              width="183"
+              height="246"
+              rx="91.5"
+              fill="#fff0e0"
+            />
+
+            <!-- nose -->
+            <ellipse cx="250" cy="248.25" rx="23" ry="18.69" fill="#ffbf7a" />
+            <ellipse cx="250" cy="245.58" rx="23" ry="16.02" fill="#fff0e0" />
+
+            <!-- sideburn shadow bars -->
+            <rect
+              x="330.18"
+              y="196.36"
+              width="20.82"
+              height="65.64"
+              rx="6"
+              fill="#101820"
+            />
+            <rect
+              x="149"
+              y="196.36"
+              width="20.82"
+              height="65.64"
+              rx="6"
+              fill="#101820"
+            />
+
+            <!-- eyebrow bars -->
+            <rect
+              x="194"
+              y="181.88"
+              width="23"
+              height="7.52"
+              rx="3.76"
+              fill="#101820"
+            />
+            <rect
+              x="283"
+              y="181.88"
+              width="23"
+              height="7.52"
+              rx="3.76"
+              fill="#101820"
+            />
+
+            <!-- cheek shading -->
+            <path
+              d="M209,220.63c8,0,14.57.36,15.17,3.37a3.05,3.05,0,0,0,.05-.52c0-3.75-6.82-6.79-15.22-6.79s-15.22,3-15.22,6.79a3.05,3.05,0,0,0,.05.52C194.43,221,201,220.63,209,220.63Z"
+              fill="#ffd9b0"
+            />
+            <path
+              d="M291,220.63c8,0,14.57.36,15.17,3.37a3.05,3.05,0,0,0,.05-.52c0-3.75-6.82-6.79-15.22-6.79s-15.22,3-15.22,6.79a3.05,3.05,0,0,0,.05.52C276.43,221,283,220.63,291,220.63Z"
+              fill="#ffd9b0"
+            />
+
+            <!-- eyes (behind glasses) -->
+            <g class="eye">
+              <circle cx="210" cy="208.5" r="9" fill="#101820" />
+              <circle cx="290" cy="208.5" r="9" fill="#101820" />
+            </g>
+
+            <!-- mustache -->
+            <circle cx="240" cy="270" r="12" fill="#101820" />
+            <circle cx="262" cy="270" r="12" fill="#101820" />
+            <g class="mustache-right">
+              <path
+                d="M262,258h9a24.07,24.07,0,0,1,24,24H262a12,12,0,0,1-12-12h0A12,12,0,0,1,262,258Z"
+                fill="#101820"
+              />
+              <path
+                d="M271,281h0a24.07,24.07,0,0,0,24,24h0V281a12,12,0,0,0-12-12h0A12,12,0,0,0,271,281Z"
+                fill="#101820"
+              />
+            </g>
+            <g class="mustache-left">
+              <path
+                d="M231,281h0a24.07,24.07,0,0,1-24,24h0V281a12,12,0,0,1,12-12h0A12,12,0,0,1,231,281Z"
+                fill="#101820"
+              />
+              <path
+                d="M240,258h-9a24.07,24.07,0,0,0-24,24h33a12,12,0,0,0,12-12h0A12,12,0,0,0,240,258Z"
+                fill="#101820"
+              />
+            </g>
+
+            <!-- body / shirt base -->
+            <path
+              d="M346,500H154V415.85A45,45,0,0,1,198.85,371h102.3A45,45,0,0,1,346,415.85Z"
+              fill="#fff0e0"
+            />
+            <path d="M180.21,500h-5c0-12-3-45-14-45h19Z" fill="#ffd9b0" />
+            <path d="M319.79,500h5c0-12,3-45,14-45h-19Z" fill="#ffd9b0" />
+
+            <!-- pink jacket (always shown) -->
+            <g class="guy__hover">
+              <path
+                d="M351.26,409a54.83,54.83,0,0,0-52.78-40H281.21a40,40,0,0,1-62.42,0H202.52a54.83,54.83,0,0,0-52.78,40L141,455H360Z"
+                fill="#fff0e0"
+              />
+              <path
+                d="M287.21,361.94l73.5,17.26a15.19,15.19,0,0,1,13.19,15.05L369.9,500H265.21Z"
+                fill="#E04C69"
+              />
+              <path
+                d="M212.79,360.94l-73.5,18.26a15.19,15.19,0,0,0-13.19,15.05l5,105.75H234.79Z"
+                fill="#E04C69"
+              />
+              <polygon
+                points="322.85 411 177.15 411 171.53 500 328.47 500 322.85 411"
+                opacity="0.2"
+              />
+              <rect
+                x="177.15"
+                y="387"
+                width="145.71"
+                height="113"
+                fill="#E04C69"
+              />
+              <polygon
+                points="267.79 500 232.21 500 212.21 387 287.79 387 267.79 500"
+                fill="#fff0e0"
+              />
+              <polygon
+                points="329.58 370.96 287.21 360.94 260.1 500 261.33 500 276.43 500 321.93 412.55 297.64 395.57 329.58 370.96"
+                fill="#F36279"
+              />
+              <polygon
+                points="170.42 370.96 212.79 360.94 239.9 500 238.67 500 223.57 500 178.07 412.55 202.35 395.57 170.42 370.96"
+                fill="#F36279"
+              />
+            </g>
+
+            <!-- chest hair (from reference character) — tucked into the collar opening -->
+            <g class="hair hair--1">
+              <path
+                d="M240.56,429.57s-.73-12.49,5.92-8c5.59,3.82.45,8-1.37,5.24s.09-8.56,3.28-8.33,5.23,4.32,5.23,4.32"
+                fill="none"
+                stroke="#231f20"
+                stroke-linecap="round"
+                stroke-miterlimit="10"
+              />
+            </g>
+            <g class="hair hair--2">
+              <path
+                d="M263.54,419.46c1.74-2.39,3.26-7.16.65-8.9s-5.21,1.08-5.43,2.82,2.17,2.17,3.91,1.3,3.69-6.08,1.3-8.47-7-1.59-8-.86c-2.83,1.95-1.39,6.21,2.3,4.25s3.41-5,1.39-7.3c-2.73-3.05-7.08.62-7.08.62"
+                fill="none"
+                stroke="#231f20"
+                stroke-linecap="round"
+                stroke-miterlimit="10"
+              />
+            </g>
+            <g class="hair hair--3">
+              <path
+                d="M242.12,406c-3.69-.22-5.21-1.17-5.21-4.65,0-2,3.48-4.48,5.86-3.17s2.29,3,.87,3.69c-3.25,1.52-5.95-1.17-5.95-4.65s4-4.91,6.6-3.39"
+                fill="none"
+                stroke="#231f20"
+                stroke-linecap="round"
+                stroke-miterlimit="10"
+              />
+            </g>
+
+            <!-- SUNGLASSES — the star of the show, always on top -->
+            <g class="sunglasses">
+              <path
+                d="M230.45,189.94c-10.26-3-34-2.25-45.88,1.91-12.11,4.23-14.21,21.32-8.73,36.44s26.07,23.07,43,13,21.68-29.26,22.4-37.57S236.59,191.74,230.45,189.94Z"
+                stroke="#B7B7B7"
+                stroke-miterlimit="10"
+                stroke-width="2"
+                fill="url(#g2_grad)"
+              />
+              <path
+                d="M269.55,189.94c10.26-3,34-2.25,45.88,1.91,12.11,4.23,14.21,21.32,8.73,36.44s-26.07,23.07-43.05,13-21.68-29.26-22.4-37.57S263.41,191.74,269.55,189.94Z"
+                stroke="#B7B7B7"
+                stroke-miterlimit="10"
+                stroke-width="2"
+                fill="url(#g2_grad2)"
+              />
+              <path
+                d="M241,203.2a35.43,35.43,0,0,1,8.33-.93,33.27,33.27,0,0,1,9.43,1.24"
+                fill="none"
+                stroke="#B7B7B7"
+                stroke-miterlimit="10"
+                stroke-width="3"
+              />
+              <line
+                x1="221.72"
+                y1="188.96"
+                x2="277.85"
+                y2="188.96"
+                fill="none"
+                stroke="#B7B7B7"
+                stroke-linecap="round"
+                stroke-miterlimit="10"
+                stroke-width="3"
+              />
+            </g>
+
+            <!-- HAND (from reference character) — victory/waving hand with articulated fingers -->
+            <g class="hand">
+              <polygon
+                points="155.13 426.31 131.78 428.32 137.96 500 161.47 499.92 155.13 426.31"
+                fill="#fff0e0"
+              />
+              <!-- two raised fingers (victory sign) -->
+              <rect
+                x="124.58"
+                y="349.74"
+                width="14.33"
+                height="57.06"
+                rx="7.17"
+                transform="translate(-134.83 79.3) rotate(-22.52)"
+                fill="#fff0e0"
+              />
+              <rect
+                x="143.96"
+                y="345.5"
+                width="14.33"
+                height="58.7"
+                rx="7.17"
+                transform="translate(-13.46 5.71) rotate(-2.07)"
+                fill="#fff0e0"
+              />
+              <!-- palm circle -->
+              <circle cx="139.94" cy="412.93" r="24.58" fill="#fff0e0" />
+              <path
+                d="M151.36,434.63a24.58,24.58,0,0,1-21.43-44.15,24.58,24.58,0,0,0,19.43,45.15,26,26,0,0,0,2.6-1.26Z"
+                fill="#ffd9b0"
+              />
+              <!-- lower fingers / knuckle rects -->
+              <rect
+                x="110.67"
+                y="397.16"
+                width="11.9"
+                height="25.69"
+                rx="5.95"
+                transform="translate(-148.13 75.93) rotate(-22.52)"
+                fill="#fff0e0"
+              />
+              <rect
+                x="119.96"
+                y="385.81"
+                width="13.25"
+                height="31.6"
+                rx="6.63"
+                transform="translate(-144.16 79.1) rotate(-22.52)"
+                fill="#fff0e0"
+              />
+              <!-- shadow on knuckle -->
+              <path
+                d="M132.64,414.21h0a6.63,6.63,0,0,1-8.66-3.59l-7-16.94a6.69,6.69,0,0,1-.43-1.54,6.69,6.69,0,0,0,.43,3.54l7,16.94a6.63,6.63,0,0,0,8.66,3.59h0a6.64,6.64,0,0,0,4-7.13A6.64,6.64,0,0,1,132.64,414.21Z"
+                fill="#ffd9b0"
+              />
+              <path
+                d="M121.54,419.87h0a6,6,0,0,1-7.77-3.22l-5.28-12.74a5.68,5.68,0,0,1-.37-1.26,5.85,5.85,0,0,0,.37,3.26l5.28,12.74a6,6,0,0,0,7.77,3.22h0a6,6,0,0,0,3.58-6.52A5.94,5.94,0,0,1,121.54,419.87Z"
+                fill="#ffd9b0"
+              />
+              <!-- thumb / side finger bar -->
+              <rect
+                x="138.48"
+                y="383.64"
+                width="14.77"
+                height="45.55"
+                rx="7.39"
+                transform="translate(-278.16 488) rotate(-81.15)"
+                fill="#fff0e0"
+              />
+              <path
+                d="M167.1,404.52a7.38,7.38,0,0,1-8.16,9.56l-30.42-4.73a7.35,7.35,0,0,1-4.88-3,7.39,7.39,0,0,0,5.88,5l30.42,4.73a7.38,7.38,0,0,0,7.16-11.56Z"
+                fill="#ffd9b0"
+              />
+            </g>
+
+            <!-- hat (from reference character) — boater hat, sits on top of everything -->
+            <g class="hat">
+              <path
+                d="M395.3,127.6c0-6.38-52.68-9.77-67.67-10.6-2.25-16.7-9.29-64.33-18.16-79.28-10.81-18.25-20-19.51-28.25-19.51S257.43,27.58,250,27.58s-23-9.37-31.22-9.37-17.44,1.26-28.25,19.51c-8.87,15-15.91,62.58-18.16,79.28-15,.83-67.67,4.22-67.67,10.6,0,7.44,81.77,21.63,145.3,21.63h0C313.53,149.23,395.3,135,395.3,127.6Z"
+                fill="#96DAEA"
+              />
+              <path
+                d="M250,79.42c-23.78-.11-47.58-1-71-3-3.18,16-5.53,32.21-6.66,40.62h-.26A459.47,459.47,0,0,0,250,123.12a460.15,460.15,0,0,0,77.57-6.55c-1.14-8.43-3.42-24.16-6.51-39.72C297.62,78.79,273.79,79.47,250,79.42Z"
+                fill="#F36279"
+              />
+            </g>
+          </g>
+        </svg>
+      </div>
+    </div>
+
+    <script>
+      /* ============================================================
+   THREE.JS CAKE
+============================================================ */
+      let scene, camera, renderer, cake;
+      let candleMeshes =
+        []; /* {stick,flameOut,flameIn,glow,light} per candle */
+      let cakeBlown = false;
+
+      /* mic */
+      let audioCtx,
+        analyser,
+        micStream,
+        micActive = false;
+      let blowHoldFrames = 0;
+
+      /* progressive blow state */
+      const TOTAL_CANDLES = 5;
+      let candlesLeft = TOTAL_CANDLES;
+      /* threshold rises with each candle: first=0.13, last=0.21 */
+      function blowThreshold() {
+        return 0.13 + (TOTAL_CANDLES - candlesLeft) * 0.02;
+      }
+      const HOLD_NEEDED = 10;
+
+      function initCake() {
+        scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(
+          65,
+          innerWidth / innerHeight,
+          0.1,
+          1000,
+        );
+        renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+        renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+        renderer.setSize(innerWidth, innerHeight);
+        document.getElementById("cake-canvas").appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffeedd, 0.55));
+        const dir = new THREE.DirectionalLight(0xffffff, 0.8);
+        dir.position.set(8, 14, 10);
+        scene.add(dir);
+        const fill = new THREE.PointLight(0xff8844, 0.3, 40);
+        fill.position.set(-8, 2, -5);
+        scene.add(fill);
+
+        const g = new THREE.Group();
+        buildTiers(g);
+        addFrosting(g);
+        addDecorations(g);
+        addCandles(g);
+        scene.add(g);
+        cake = g;
+        camera.position.set(0, 4, 14);
+        animate();
+        document
+          .getElementById("start-mic-btn")
+          .addEventListener("click", startMic);
+      }
+
+      function buildTiers(g) {
+        [
+          [5, 2.2, 0, 0xf9a8c0],
+          [4, 2.2, 2.2, 0xfbbdd4],
+          [3, 2.2, 4.4, 0xfdd0e4],
+        ].forEach(([r, h, y, col]) => {
+          const body = new THREE.Mesh(
+            new THREE.CylinderGeometry(r, r, h, 48),
+            new THREE.MeshPhongMaterial({ color: col, shininess: 50 }),
+          );
+          body.position.y = y + h / 2;
+          g.add(body);
+          const rim = new THREE.Mesh(
+            new THREE.TorusGeometry(r, 0.09, 10, 60),
+            new THREE.MeshPhongMaterial({ color: 0xf5c530, shininess: 180 }),
+          );
+          rim.position.y = y + h;
+          rim.rotation.x = Math.PI / 2;
+          g.add(rim);
+        });
+      }
+
+      function addFrosting(g) {
+        [
+          [14, 5, 2.2, 0.5],
+          [11, 4, 4.4, 0.4],
+          [8, 3, 6.6, 0.32],
+        ].forEach(([n, r, y, sz]) => {
+          for (let i = 0; i < n; i++) {
+            const a = (i / n) * Math.PI * 2;
+            const b = new THREE.Mesh(
+              new THREE.SphereGeometry(sz, 10, 10),
+              new THREE.MeshPhongMaterial({ color: 0xfff5f0, shininess: 70 }),
+            );
+            b.position.set(Math.cos(a) * r, y, Math.sin(a) * r);
+            g.add(b);
+          }
+        });
+        for (let i = 0; i < 7; i++) {
+          const a = (i / 7) * Math.PI * 2;
+          const b = new THREE.Mesh(
+            new THREE.SphereGeometry(0.5, 10, 10),
+            new THREE.MeshPhongMaterial({ color: 0xfff5f0, shininess: 70 }),
+          );
+          b.position.set(Math.cos(a) * 1.3, 6.8, Math.sin(a) * 1.3);
+          g.add(b);
+        }
+        const tip = new THREE.Mesh(
+          new THREE.SphereGeometry(0.65, 12, 12),
+          new THREE.MeshPhongMaterial({ color: 0xfff5f0, shininess: 70 }),
+        );
+        tip.position.set(0, 6.9, 0);
+        g.add(tip);
+      }
+
+      function addDecorations(g) {
+        const dotCols = [0xff6b9d, 0x7de0ff, 0xb48aff, 0x6dffd2, 0xffb347];
+        [
+          [5, 1.1, 18],
+          [4, 3.3, 14],
+          [3, 5.5, 10],
+        ].forEach(([r, y, n]) => {
+          for (let i = 0; i < n; i++) {
+            const a = (i / n) * Math.PI * 2;
+            const d = new THREE.Mesh(
+              new THREE.SphereGeometry(0.2, 8, 8),
+              new THREE.MeshPhongMaterial({
+                color: dotCols[i % dotCols.length],
+                shininess: 80,
+              }),
+            );
+            d.position.set(
+              Math.cos(a) * (r + 0.01),
+              y,
+              Math.sin(a) * (r + 0.01),
+            );
+            g.add(d);
+          }
+        });
+      }
+
+      function addCandles(g) {
+        const pos = [
+          { x: 0, z: 0 },
+          { x: 1.4, z: 0 },
+          { x: -1.4, z: 0 },
+          { x: 0, z: 1.4 },
+          { x: 0, z: -1.4 },
+        ];
+        const cols = [0xff6b9d, 0xffb347, 0x7de0ff, 0xb48aff, 0x6dffd2];
+        const baseY = 6.6;
+        pos.forEach((p, i) => {
+          const stick = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.13, 0.13, 1.1, 16),
+            new THREE.MeshPhongMaterial({ color: cols[i], shininess: 60 }),
+          );
+          stick.position.set(p.x, baseY + 0.55, p.z);
+          g.add(stick);
+
+          const light = new THREE.PointLight(0xffdd55, 2.8, 9);
+          light.position.set(p.x, baseY + 1.45, p.z);
+          g.add(light);
+
+          const flameOut = new THREE.Mesh(
+            new THREE.ConeGeometry(0.22, 0.75, 16),
+            new THREE.MeshPhongMaterial({
+              color: 0xff8800,
+              emissive: 0xff4400,
+              emissiveIntensity: 1.4,
+              transparent: true,
+              opacity: 0.92,
+            }),
+          );
+          flameOut.position.set(p.x, baseY + 1.45, p.z);
+          g.add(flameOut);
+
+          const flameIn = new THREE.Mesh(
+            new THREE.ConeGeometry(0.1, 0.46, 12),
+            new THREE.MeshPhongMaterial({
+              color: 0xffff99,
+              emissive: 0xffff00,
+              emissiveIntensity: 2.2,
+              transparent: true,
+              opacity: 0.98,
+            }),
+          );
+          flameIn.position.set(p.x, baseY + 1.52, p.z);
+          g.add(flameIn);
+
+          const glow = new THREE.Mesh(
+            new THREE.SphereGeometry(0.2, 10, 10),
+            new THREE.MeshPhongMaterial({
+              color: 0xffff44,
+              emissive: 0xffaa00,
+              emissiveIntensity: 2,
+              transparent: true,
+              opacity: 0.65,
+            }),
+          );
+          glow.position.set(p.x, baseY + 1.18, p.z);
+          g.add(glow);
+
+          candleMeshes.push({
+            stick,
+            flameOut,
+            flameIn,
+            glow,
+            light,
+            blown: false,
+          });
+        });
+      }
+
+      /* ---- animate loop ---- */
+      function animate() {
+        requestAnimationFrame(animate);
+        const t = Date.now() * 0.005;
+        cake.rotation.y += cakeBlown ? 0.016 : 0.004;
+
+        candleMeshes.forEach((c, i) => {
+          if (c.blown) return;
+          c.flameOut.rotation.y += 0.07;
+          c.flameOut.position.y += Math.sin(t * 3 + i * 0.9) * 0.001;
+          c.flameOut.scale.x = 1 + Math.sin(t * 4 + i * 0.7) * 0.09;
+          c.flameOut.scale.z = c.flameOut.scale.x;
+          c.flameIn.position.y = c.flameOut.position.y + 0.07;
+          c.light.intensity = 2.2 + Math.sin(t * 3 + i * 1.7) * 0.7;
+        });
+
+        if (micActive && analyser && !cakeBlown) {
+          const lv = getMicLevel();
+          document.getElementById("blow-meter-bar").style.width =
+            lv * 100 + "%";
+          const thr = blowThreshold();
+          if (lv > thr) {
+            blowHoldFrames++;
+            if (blowHoldFrames >= HOLD_NEEDED) {
+              blowHoldFrames = 0;
+              extinguishOne();
+            }
+          } else {
+            blowHoldFrames = Math.max(0, blowHoldFrames - 1);
+          }
+        }
+        renderer.render(scene, camera);
+      }
+
+      /* ---- mic ---- */
+      async function startMic() {
+        /* Unlock audio playback NOW — we have a user gesture from the mic button click */
+        const audio = document.getElementById("bday-audio");
+        audio.volume = 0;
+        audio
+          .play()
+          .then(() => {
+            audio.pause();
+            audio.currentTime = 0;
+            audio.volume = 0.85;
+          })
+          .catch(() => {});
+
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia({
+            audio: true,
+          });
+          audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          const src = audioCtx.createMediaStreamSource(micStream);
+          analyser = audioCtx.createAnalyser();
+          analyser.fftSize = 256;
+          src.connect(analyser);
+          micActive = true;
+          document.getElementById("start-mic-btn").classList.add("hidden");
+          document.getElementById("blow-meter-wrap").classList.add("visible");
+          document.getElementById("candle-count").classList.add("visible");
+          updateCandleCount();
+          document.getElementById("instructions").textContent =
+            "🎂 Blow to snuff each candle! 🎂";
+        } catch (e) {
+          document.getElementById("instructions").textContent =
+            "🎂 Click the cake to blow! 🎂";
+          document.getElementById("start-mic-btn").classList.add("hidden");
+          /* unlock audio on first cake click */
+          const unlockAudio = () => {
+            const a = document.getElementById("bday-audio");
+            a.volume = 0;
+            a.play()
+              .then(() => {
+                a.pause();
+                a.currentTime = 0;
+                a.volume = 0.85;
+              })
+              .catch(() => {});
+          };
+          renderer.domElement.addEventListener(
+            "click",
+            () => {
+              unlockAudio();
+              extinguishOne();
+            },
+            { once: true },
+          );
+          renderer.domElement.addEventListener("click", () => extinguishOne());
+        }
+      }
+      function getMicLevel() {
+        const buf = new Uint8Array(analyser.frequencyBinCount);
+        analyser.getByteFrequencyData(buf);
+        return buf.reduce((a, b) => a + b, 0) / (buf.length * 255);
+      }
+
+      function updateCandleCount() {
+        const el = document.getElementById("candle-count");
+        if (candlesLeft > 0) {
+          el.textContent = `🕯 ${candlesLeft} candle${candlesLeft > 1 ? "s" : ""} left — blow harder!`;
+        }
+      }
+
+      /* ---- extinguish ONE candle per strong blow ---- */
+      function extinguishOne() {
+        /* find the first unblown candle */
+        const c = candleMeshes.find((c) => !c.blown);
+        if (!c) return;
+        c.blown = true;
+        c.flameOut.visible = false;
+        c.flameIn.visible = false;
+        c.glow.visible = false;
+
+        /* smoke puff: quick scale-up then fade */
+        c.light.intensity = 0;
+
+        candlesLeft--;
+        updateCandleCount();
+
+        /* small shake on the cake */
+        shakeCake();
+
+        if (candlesLeft === 0) {
+          /* tiny delay so last extinguish registers visually */
+          setTimeout(() => allCandlesOut(), 400);
+        } else {
+          /* bump threshold feedback via meter color */
+          const pct = Math.round(blowThreshold() * 100);
+          document.getElementById("instructions").textContent =
+            `💨 ${candlesLeft} left — need ${pct}%+ blow!`;
+        }
+      }
+
+      let shakeTimeout;
+      function shakeCake() {
+        clearTimeout(shakeTimeout);
+        cake.rotation.z = 0.04;
+        shakeTimeout = setTimeout(() => {
+          cake.rotation.z = 0;
+        }, 120);
+      }
+
+      function allCandlesOut() {
+        cakeBlown = true;
+        document.getElementById("blow-ui").style.display = "none";
+        document.getElementById("confetti-canvas").style.display = "block";
+        createConfetti();
+        document.getElementById("balloons").classList.add("visible");
+        setTimeout(playBirthdaySong, 300);
+        // fade the cake out so the character gets a clear stage
+        setTimeout(() => {
+          const canvas = document.getElementById("cake-canvas");
+          canvas.style.transition = "opacity 1s ease";
+          canvas.style.opacity = "0";
+          setTimeout(() => {
+            canvas.style.display = "none";
+          }, 1050);
+        }, 600);
+        setTimeout(showCharacter, 1000);
+        if (micStream) micStream.getTracks().forEach((t) => t.stop());
+      }
+
+      /* ============================================================
+   MUSIC (MP3)
+============================================================ */
+      function playBirthdaySong() {
+        const audio = document.getElementById("bday-audio");
+        if (
+          !audio.src ||
+          audio.networkState === HTMLMediaElement.NETWORK_NO_SOURCE
+        )
+          return;
+        audio.currentTime = 0;
+        audio.volume = 0.85;
+        audio.play().catch(() => {
+          /* fallback: show play button if somehow still blocked */
+          const btn = document.createElement("button");
+          btn.textContent = "▶  Play Birthday Song";
+          Object.assign(btn.style, {
+            position: "fixed",
+            bottom: "5%",
+            left: "50%",
+            transform: "translateX(-50%)",
+            background: "rgba(0,0,0,.5)",
+            backdropFilter: "blur(8px)",
+            border: "1.5px solid rgba(255,200,100,.5)",
+            color: "rgba(255,230,180,.95)",
+            fontFamily: "'Inter',sans-serif",
+            fontSize: "15px",
+            padding: "11px 28px",
+            borderRadius: "30px",
+            cursor: "pointer",
+            zIndex: "300",
+          });
+          document.body.appendChild(btn);
+          btn.addEventListener(
+            "click",
+            () => {
+              audio.play();
+              btn.remove();
+            },
+            { once: true },
+          );
+        });
+        const chip = document.getElementById("music-chip");
+        chip.classList.add("show");
+        audio.addEventListener(
+          "ended",
+          () => {
+            chip.style.transition = "opacity .8s";
+            chip.style.opacity = "0";
+            setTimeout(() => {
+              chip.classList.remove("show");
+              chip.style.opacity = "";
+            }, 850);
+          },
+          { once: true },
+        );
+      }
+
+      /* ============================================================
+   CHARACTER — eyebrow bob (CSS) + wink (canvas)
+============================================================ */
+      function showCharacter() {
+        const wrap = document.getElementById("char-wrap");
+        wrap.classList.add("visible");
+        setTimeout(() => {
+          document.getElementById("svg-guy-wrap").classList.add("dancing");
+        }, 800);
+      }
+
+      /* ============================================================
+   CONFETTI
+============================================================ */
+      function createConfetti() {
+        const cv = document.getElementById("confetti-canvas");
+        const cx = cv.getContext("2d");
+        cv.width = innerWidth;
+        cv.height = innerHeight;
+        const cols = [
+          "#ff4081",
+          "#ff9e80",
+          "#ffff8d",
+          "#b9f6ca",
+          "#80d8ff",
+          "#ce93d8",
+          "#f48fb1",
+          "#fff176",
+        ];
+        const makePiece = (startAboveScreen) => ({
+          x: Math.random() * cv.width,
+          y: startAboveScreen
+            ? -20 - Math.random() * cv.height
+            : Math.random() * cv.height * 1.4 - cv.height * 0.4,
+          w: Math.random() * 10 + 5,
+          h: Math.random() * 5 + 3,
+          color: cols[0 | (Math.random() * cols.length)],
+          speed: Math.random() * 3 + 1.5,
+          vx: (Math.random() - 0.5) * 1.6,
+          rot: Math.random() * 360,
+          rotV: Math.random() * 8 - 4,
+        });
+        const ps = Array.from({ length: 280 }, () => makePiece(false));
+        (function draw() {
+          cx.clearRect(0, 0, cv.width, cv.height);
+          ps.forEach((p) => {
+            cx.save();
+            cx.translate(p.x, p.y);
+            cx.rotate((p.rot * Math.PI) / 180);
+            cx.fillStyle = p.color;
+            cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+            cx.restore();
+            p.y += p.speed;
+            p.x += p.vx;
+            p.rot += p.rotV;
+            // once a piece drifts off the bottom, recycle it back above
+            // the screen so the shower keeps going forever
+            if (p.y > cv.height + 10) {
+              p.y = -20;
+              p.x = Math.random() * cv.width;
+              p.vx = (Math.random() - 0.5) * 1.6;
+            }
+          });
+          requestAnimationFrame(draw);
+        })();
+      }
+
+      window.addEventListener("resize", () => {
+        if (!camera || !renderer) return;
+        camera.aspect = innerWidth / innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(innerWidth, innerHeight);
+      });
+
+      window.onload = initCake;
+    </script>
+  </body>
+</html>
