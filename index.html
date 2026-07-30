@@ -1635,7 +1635,14 @@
         renderer.setSize(innerWidth, innerHeight);
       });
 
-      window.onload = initCake;
+      // Run immediately: by the time this inline script executes (it's at
+      // the end of <body>), the DOM/canvas are already parsed and Three.js
+      // (loaded via a blocking <script> in <head>) is already available.
+      // The cake itself is built procedurally with no textures/models to
+      // fetch, so there's no reason to wait for window.onload — which used
+      // to stall rendering until every page resource (fonts, and especially
+      // the eagerly-preloaded birthday.mp3) had fully downloaded.
+      initCake();
     </script>
   </body>
 </html>
