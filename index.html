@@ -1189,9 +1189,9 @@
 
       function buildTiers(g) {
         [
-          [5, 2.2, 0, 0xf9a8c0],
-          [4, 2.2, 2.2, 0xfbbdd4],
-          [3, 2.2, 4.4, 0xfdd0e4],
+          [5, 2.2, 0, 0xe0293f],
+          [4, 2.2, 2.2, 0xec3a50],
+          [3, 2.2, 4.4, 0xf94f63],
         ].forEach(([r, h, y, col]) => {
           const body = new THREE.Mesh(
             new THREE.CylinderGeometry(r, r, h, 48),
@@ -1199,9 +1199,17 @@
           );
           body.position.y = y + h / 2;
           g.add(body);
+          // watermelon rind edge: white pith ring, then a green rind ring on top of it
+          const pith = new THREE.Mesh(
+            new THREE.TorusGeometry(r, 0.08, 10, 60),
+            new THREE.MeshPhongMaterial({ color: 0xf7f5e6, shininess: 60 }),
+          );
+          pith.position.y = y + h - 0.14;
+          pith.rotation.x = Math.PI / 2;
+          g.add(pith);
           const rim = new THREE.Mesh(
             new THREE.TorusGeometry(r, 0.09, 10, 60),
-            new THREE.MeshPhongMaterial({ color: 0xf5c530, shininess: 180 }),
+            new THREE.MeshPhongMaterial({ color: 0x2f8f4e, shininess: 90 }),
           );
           rim.position.y = y + h;
           rim.rotation.x = Math.PI / 2;
@@ -1243,27 +1251,37 @@
       }
 
       function addDecorations(g) {
-        const dotCols = [0xff6b9d, 0x7de0ff, 0xb48aff, 0x6dffd2, 0xffb347];
+        // watermelon seeds: small, dark, teardrop-flat, studded generously
+        // across each red tier so they read clearly against the flesh.
+        const seedMat = new THREE.MeshPhongMaterial({
+          color: 0x1f0f08,
+          shininess: 90,
+        });
         [
-          [5, 1.1, 18],
-          [4, 3.3, 14],
-          [3, 5.5, 10],
-        ].forEach(([r, y, n]) => {
-          for (let i = 0; i < n; i++) {
-            const a = (i / n) * Math.PI * 2;
-            const d = new THREE.Mesh(
-              new THREE.SphereGeometry(0.2, 8, 8),
-              new THREE.MeshPhongMaterial({
-                color: dotCols[i % dotCols.length],
-                shininess: 80,
-              }),
-            );
-            d.position.set(
-              Math.cos(a) * (r + 0.01),
-              y,
-              Math.sin(a) * (r + 0.01),
-            );
-            g.add(d);
+          // r (tier radius), yBase (tier bottom), h (tier height), rows, perRow
+          [5, 0, 2.2, 3, 12],
+          [4, 2.2, 2.2, 3, 10],
+          [3, 4.4, 2.2, 2, 9],
+        ].forEach(([r, yBase, h, rows, perRow]) => {
+          for (let row = 0; row < rows; row++) {
+            const y = yBase + h * ((row + 0.5) / rows);
+            const rowOffset = (row % 2) * (Math.PI / perRow); // stagger rows
+            for (let i = 0; i < perRow; i++) {
+              const a = (i / perRow) * Math.PI * 2 + rowOffset;
+              const seed = new THREE.Mesh(
+                new THREE.SphereGeometry(0.16, 8, 8),
+                seedMat,
+              );
+              seed.scale.set(0.55, 1.15, 0.3);
+              seed.position.set(
+                Math.cos(a) * (r + 0.03),
+                y,
+                Math.sin(a) * (r + 0.03),
+              );
+              seed.rotation.y = -a;
+              seed.rotation.z = (Math.random() - 0.5) * 0.6;
+              g.add(seed);
+            }
           }
         });
       }
