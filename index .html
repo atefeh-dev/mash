@@ -2,7 +2,10 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
     <title>Happy Level Up!</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <!--
@@ -26,6 +29,7 @@
         margin: 0;
         padding: 0;
         min-height: 100vh;
+        min-height: 100dvh;
         font-family: "Inter", sans-serif;
         background: linear-gradient(
           160deg,
@@ -35,6 +39,7 @@
         );
         overflow-x: hidden;
         overflow-y: hidden;
+        overscroll-behavior: none;
       }
       body::before {
         content: "";
@@ -105,9 +110,11 @@
         left: 0;
         width: 100%;
         height: 100vh;
+        height: 100dvh;
         z-index: 20;
         pointer-events: auto;
         transition: transform 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: manipulation;
       }
       #cake-canvas.shifted {
         transform: translateX(22%);
@@ -116,7 +123,7 @@
       /* blow ui */
       #blow-ui {
         position: fixed;
-        bottom: 9%;
+        bottom: calc(9% + env(safe-area-inset-bottom, 0px));
         left: 50%;
         transform: translateX(-50%);
         display: flex;
@@ -124,6 +131,8 @@
         align-items: center;
         gap: 12px;
         z-index: 100;
+        width: 100%;
+        padding: 0 16px;
       }
       #instructions {
         font-family: "Playfair Display", serif;
@@ -138,7 +147,8 @@
         border: 1px solid rgba(255, 255, 255, 0.15);
         animation: softpulse 2.4s ease-in-out infinite;
         text-align: center;
-        white-space: nowrap;
+        white-space: normal;
+        max-width: min(90vw, 480px);
       }
       #start-mic-btn {
         background: rgba(255, 255, 255, 0.1);
@@ -149,6 +159,7 @@
         padding: 10px 26px;
         border-radius: 30px;
         cursor: pointer;
+        touch-action: manipulation;
         transition:
           background 0.2s,
           transform 0.15s;
@@ -161,7 +172,7 @@
         display: none;
       }
       #blow-meter-wrap {
-        width: 200px;
+        width: min(200px, 60vw);
         height: 8px;
         background: rgba(255, 255, 255, 0.12);
         border-radius: 6px;
@@ -332,7 +343,7 @@
         margin-bottom: 46px;
         white-space: normal;
         text-align: center;
-        max-width: 100%;
+        max-width: min(85vw, 420px);
         opacity: 0;
         transition: opacity 0.7s ease 0.5s;
       }
@@ -510,8 +521,8 @@
       /* music chip */
       #music-chip {
         position: fixed;
-        top: 20px;
-        right: 20px;
+        top: calc(20px + env(safe-area-inset-top, 0px));
+        right: calc(20px + env(safe-area-inset-right, 0px));
         background: rgba(0, 0, 0, 0.5);
         backdrop-filter: blur(10px);
         border: 1px solid rgba(255, 200, 100, 0.3);
@@ -523,6 +534,7 @@
         z-index: 200;
         font-family: "Inter", sans-serif;
         font-size: 13px;
+        max-width: calc(100vw - 40px);
       }
       #music-chip.show {
         display: flex;
@@ -565,6 +577,49 @@
           width: 200px;
           height: 200px;
         }
+        #instructions {
+          font-size: 15px;
+          padding: 9px 18px;
+        }
+        #start-mic-btn {
+          font-size: 13px;
+          padding: 12px 24px;
+        }
+        #candle-count {
+          font-size: 12px;
+          padding: 4px 12px;
+        }
+        #blow-ui {
+          bottom: calc(6% + env(safe-area-inset-bottom, 0px));
+          gap: 9px;
+        }
+        #char-label {
+          font-size: 16px;
+          padding: 12px 22px;
+          margin-bottom: 30px;
+        }
+        #music-chip {
+          font-size: 11px;
+          padding: 8px 14px 8px 10px;
+        }
+        #music-disc {
+          width: 22px;
+          height: 22px;
+        }
+      }
+      @media (max-width: 420px) {
+        #svg-guy-wrap {
+          width: 160px;
+          height: 160px;
+        }
+        #instructions {
+          font-size: 13px;
+          padding: 8px 16px;
+        }
+        #char-label {
+          font-size: 14px;
+          padding: 10px 18px;
+        }
       }
       @media (prefers-reduced-motion: reduce) {
         .cartoon.dancing,
@@ -582,10 +637,10 @@
       <div id="blow-meter-wrap"><div id="blow-meter-bar"></div></div>
       <div id="candle-count"></div>
       <div id="instructions">
-        🎂 حالا چشماتو ببند، یه آرزوی قشنگ کن و شمع‌ها رو فوت کن 🥰✨
+        🎂 یه نفس عمیق بکش دردونه، شمع‌ها رو فوت کن و یه آرزوی قشنگ کن 🎂
       </div>
       <button id="start-mic-btn">
-        🎤 برای فوت کردن شمع‌ها، اجازه دسترسی به میکروفون رو بده!
+        🎤 برای فوت کردن شمع‌ها، اجازه دسترسی به میکروفون رو بده
       </button>
     </div>
 
@@ -1156,6 +1211,21 @@
       }
       const HOLD_NEEDED = 10;
 
+      /* Camera distance was tuned for landscape aspect ratios. On a narrow
+         portrait phone the horizontal field of view shrinks a lot more than
+         the vertical one, so the wide 3-tier cake gets cropped left/right.
+         This keeps the whole cake (plus candles) framed at any aspect. */
+      function fitCameraDistance() {
+        const aspect = innerWidth / innerHeight;
+        const vFov = (65 * Math.PI) / 180;
+        const halfHeight = 4.6; // half-height of cake + candles, in scene units
+        const halfWidth = 6; // half-width of cake incl. frosting bumps
+        const distForHeight = halfHeight / Math.tan(vFov / 2);
+        const hFov = 2 * Math.atan(Math.tan(vFov / 2) * aspect);
+        const distForWidth = halfWidth / Math.tan(hFov / 2);
+        return Math.max(distForHeight, distForWidth, 14);
+      }
+
       function initCake() {
         scene = new THREE.Scene();
         camera = new THREE.PerspectiveCamera(
@@ -1184,7 +1254,7 @@
         addCandles(g);
         scene.add(g);
         cake = g;
-        camera.position.set(0, 4, 14);
+        camera.position.set(0, 4, fitCameraDistance());
         animate();
         document
           .getElementById("start-mic-btn")
@@ -1298,7 +1368,7 @@
           { x: 0, z: 1.4 },
           { x: 0, z: -1.4 },
         ];
-        const cols = [0xff6b9d, 0xffb347, 0x7de0ff, 0xb48aff, 0x6dffd2];
+        const cols = [0xe0293f, 0x2f8f4e, 0xf94f63, 0x1f6b39, 0xff5a6e];
         const baseY = 6.6;
         pos.forEach((p, i) => {
           const stick = new THREE.Mesh(
@@ -1511,7 +1581,10 @@
         document.getElementById("confetti-canvas").style.display = "block";
         createConfetti();
         document.getElementById("balloons").classList.add("visible");
-        setTimeout(playBirthdaySong, 300);
+        // Play right away, in the same tick as the confetti/balloons reveal —
+        // it was previously delayed an extra 300ms behind the celebration,
+        // which made the song noticeably lag the blow-out.
+        playBirthdaySong();
         // fade the cake out so the character gets a clear stage
         setTimeout(() => {
           const canvas = document.getElementById("cake-canvas");
@@ -1653,8 +1726,19 @@
       window.addEventListener("resize", () => {
         if (!camera || !renderer) return;
         camera.aspect = innerWidth / innerHeight;
+        camera.position.z = fitCameraDistance();
         camera.updateProjectionMatrix();
         renderer.setSize(innerWidth, innerHeight);
+      });
+      window.addEventListener("orientationchange", () => {
+        // give the browser a moment to settle the new innerWidth/innerHeight
+        setTimeout(() => {
+          if (!camera || !renderer) return;
+          camera.aspect = innerWidth / innerHeight;
+          camera.position.z = fitCameraDistance();
+          camera.updateProjectionMatrix();
+          renderer.setSize(innerWidth, innerHeight);
+        }, 200);
       });
 
       // Run immediately: by the time this inline script executes (it's at
